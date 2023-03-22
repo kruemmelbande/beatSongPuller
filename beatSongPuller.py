@@ -4,12 +4,13 @@ import json
 
 pullDataFromQuest = False
 
-# Step 1: List all the custom levels in the SongLoader folder on the Quest using adb
 if pullDataFromQuest:
+    # Step 1: List all the custom levels in the SongLoader folder on the Quest using adb
+
     result = subprocess.run(["adb", "shell","ls", "/sdcard/ModData/com.beatgames.beatsaber/Mods/SongLoader/CustomLevels/"], capture_output=True, text=True)
     folders = result.stdout.strip().split("\n")
 
-# Step 2: Pull all the custom levels from the Quest using adb
+    # Step 2: Pull all the custom levels from the Quest using adb
 
     os.makedirs("BeatMaps", exist_ok=True)
     for folder in folders:
@@ -27,15 +28,16 @@ for root, dirs, files in os.walk("BeatMaps"):
                 try:
                     song = info["_songName"]
                     author = info["_songAuthorName"]
+                    filename=info["_songFilename"]
                     print(f"Found {song} by {author}")
-                    songs.append((root, song, author))
+                    songs.append((root, song, author, filename))
                 except:
                     print(info)
 # Step 4: Save all the songs into a folder with the correct names
 os.makedirs("Playlist", exist_ok=True)
 for song in songs:
     try:
-        src_path = os.path.join(song[0], "song.egg")
+        src_path = os.path.join(song[0], song[3])
         dst_path = os.path.join(".\\Playlist", f"{song[1]} - {song[2]}.ogg")
         #subprocess.run(["cp", f'{src_path}', f'{dst_path}'])
         command = f'copy "{src_path}" "{dst_path}"'
