@@ -1,9 +1,33 @@
 import os
 import subprocess
 import json
+import shutil
+from sys import argv
+import sys
+if len(argv) > 1:
+    if "--source" in argv:
+        if len(argv) > argv.index("--source")+1:
+            if argv[argv.index("--source")+1] == "local":
+                pullDataFromQuest = False
+            elif argv[argv.index("--source")+1] == "quest":
+                pullDataFromQuest = True
+            else:    
+                    print(f"Invalid source: {argv[argv.index('--source')+1]}")
+                    print("Usage: python beatSongPuller.py --source local/quest [--cleanup]")
+                    exit(1)
+        else:
+            print("Usage: python beatSongPuller.py --source local/quest [--cleanup]")
+            exit(1)
+    else:
+        print("Usage: python beatSongPuller.py --source local/quest [--cleanup]")
+        exit(1)
+    docleanup="--cleanup" in argv
+else:
+    print("Usage: python beatSongPuller.py --source local/quest [--cleanup]")
+    sys.exit(1)
 
-pullDataFromQuest = True
-
+if docleanup:
+    print("Cleanup is enabled, all the beatmaps will be deleted after the songs are copied.")
 if pullDataFromQuest:
     # Step 1: List all the custom levels in the SongLoader folder on the Quest using adb
 
@@ -18,6 +42,9 @@ if pullDataFromQuest:
         dst_folder = f"BeatMaps/{folder}"
         subprocess.run(["adb", "pull", src_folder, dst_folder])
 
+if not os.path.exists("BeatMaps"):
+    print("BeatMaps folder not found, please run this script with the --source quest option to pull the beatmaps from your Quest, or make sure the script is being run in the same directory.")
+    exit(1)
 # Step 3: Read all the song names and author names from the info.dat files of each map
 songs = []
 for root, dirs, files in os.walk("BeatMaps"):
@@ -37,6 +64,8 @@ for root, dirs, files in os.walk("BeatMaps"):
                     print(info)
             break
 # Step 4: Save all the songs into a folder with the correct names
+if os.path.exists("Playlist"):
+    print("Playlist folder already in use. Playlist will be merged with the existing one.")
 os.makedirs("Playlist", exist_ok=True)
 i=0
 for song in songs:
@@ -46,8 +75,6 @@ for song in songs:
         if os.path.exists(dst_path):
             continue
         command = f'copy "{src_path}" "{dst_path}"'
-        #print(command)
-        #subprocess.run(["copy", f'"{src_path}"', f'"{dst_path}"']) # This doesn't work for some reason
         os.system(command)
         i+=1
     except Exception as e:
@@ -55,4 +82,8 @@ for song in songs:
         print(f"Source: {src_path}")
         print(f"Destination: {dst_path}")
 actualSongs = os.listdir("Playlist")
+if docleanup:
+    print("Cleaning up...")
+    shutil.rmtree("BeatMaps")
+    print("Cleanup complete.")
 print(f"{len(actualSongs)} songs were copied, {len(songs)-len(actualSongs)} songs encountered errors or were duplicates.")
